@@ -213,19 +213,86 @@ const Index = () => {
     setEmailDialogOpen(true);
   };
 
-  const sendEmail = () => {
+  const sendEmail = async () => {
     setEmailDialogOpen(false);
-    toast({
-      title: "Email Sent Successfully!",
-      description: `AI outreach email sent to ${selectedInfluencer?.name}. Expect a response within 24-48 hours.`,
-    });
-    // Simulate response after 3 seconds
-    setTimeout(() => {
+    
+    try {
+      // Show loading toast
       toast({
-        title: "Response Received!",
-        description: `${selectedInfluencer?.name} replied with their phone number. Ready for voice negotiation.`,
+        title: "Sending Email...",
+        description: `Sending outreach email to ${selectedInfluencer?.name}.`,
       });
-    }, 3000);
+      
+      // Prepare email data
+      const emailData = {
+        influencer_name: selectedInfluencer?.name,
+        influencer_email: selectedInfluencer?.contact || 'natarajan.mohan33@gmail.com', // Fallback to your email if contact is missing
+        campaign_name: 'BrandSync Collaboration',
+        message: `I hope this message finds you well! I'm reaching out because we absolutely love your content in the ${selectedInfluencer?.category} space. Your engagement rates and authentic connection with your audience align perfectly with our upcoming campaign.
+
+We'd love to discuss a potential collaboration opportunity. Would you be available for a brief call to explore this further? Please share your preferred contact number, and we can schedule something at your convenience.
+
+Looking forward to potentially working together!`,
+        influencer_id: selectedInfluencer?.id,
+        campaign_id: 1, // Default campaign ID
+        use_mock: false // Disable mock email service to use real SendGrid
+      };
+      
+      // Send API request to backend
+      const response = await fetch('http://localhost:8000/outreach/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(emailData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Success toast
+        toast({
+          title: "Email Sent Successfully!",
+          description: `Outreach email sent to ${selectedInfluencer?.name}. Expect a response within 24-48 hours.`,
+        });
+        
+        // Update outreach stats
+        setOutreachStats(prev => ({
+          ...prev,
+          totalOutreach: prev.totalOutreach + 1
+        }));
+        
+        // Simulate response after 3 seconds (for demo purposes)
+        setTimeout(() => {
+          toast({
+            title: "Response Received!",
+            description: `${selectedInfluencer?.name} replied with their phone number. Ready for voice negotiation.`,
+          });
+          
+          // Update response stats
+          setOutreachStats(prev => ({
+            ...prev,
+            responses: prev.responses + 1
+          }));
+        }, 3000);
+      } else {
+        // Error toast
+        toast({
+          title: "Email Sending Failed",
+          description: data.detail || 'There was an error sending the email. Please try again.',
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error sending email:', error);
+      
+      // Error toast
+      toast({
+        title: "Email Sending Failed",
+        description: 'There was an error connecting to the server. Please try again.',
+        variant: "destructive"
+      });
+    }
   };
 
   const startVoiceNegotiation = (influencer) => {
