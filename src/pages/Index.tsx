@@ -83,9 +83,12 @@ const mockInfluencers = [
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchInputValue, setSearchInputValue] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
-  const [filteredInfluencers, setFilteredInfluencers] = useState(mockInfluencers);
+  const [filteredInfluencers, setFilteredInfluencers] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [selectedInfluencer, setSelectedInfluencer] = useState(null);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [voiceDialogOpen, setVoiceDialogOpen] = useState(false);
@@ -112,31 +115,98 @@ const Index = () => {
     });
   };
 
-  // Filter influencers based on search and filters
+  // Function to fetch influencers from the backend API
+  const fetchInfluencers = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      let url = 'http://localhost:8000/influencers';
+      
+      // If there's a search query, use the semantic search endpoint
+      if (searchInputValue.trim()) {
+        // Build a natural language query that includes all filters
+        let fullQuery = searchInputValue;
+        
+        // Add category and platform to the search query if selected
+        if (selectedCategory !== 'all') {
+          fullQuery += ` in category ${selectedCategory}`;
+        }
+        
+        if (selectedPlatform !== 'all') {
+          fullQuery += ` on ${selectedPlatform}`;
+        }
+        
+        url = `http://localhost:8000/influencers/search?q=${encodeURIComponent(fullQuery)}`;
+      }
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch influencers');
+      }
+      
+      let data = await response.json();
+      
+      // If we're not using semantic search, apply client-side filtering
+      if (!searchInputValue.trim()) {
+        // Apply category filter
+        if (selectedCategory !== 'all') {
+          data = data.filter(influencer => 
+            influencer.category.toLowerCase().includes(selectedCategory.toLowerCase())
+          );
+        }
+        
+        // Apply platform filter
+        if (selectedPlatform !== 'all') {
+          data = data.filter(influencer => {
+            // Handle both array and string formats for platforms
+            if (Array.isArray(influencer.platforms)) {
+              return influencer.platforms.some(p => 
+                p.toLowerCase().includes(selectedPlatform.toLowerCase())
+              );
+            } else if (typeof influencer.platforms === 'string') {
+              return influencer.platforms.toLowerCase().includes(selectedPlatform.toLowerCase());
+            }
+            return false;
+          });
+        }
+      }
+      
+      // Map backend data to frontend format if needed
+      const mappedData = data.map(influencer => ({
+        id: influencer.id,
+        name: influencer.name,
+        platform: Array.isArray(influencer.platforms) ? influencer.platforms : influencer.platforms.split(', '),
+        language: 'English', // Default value as this might not be in the backend
+        followers: influencer.followers,
+        engagement_rate: influencer.engagement_rate,
+        category: influencer.category,
+        location: influencer.region,
+        avg_views: Math.round(influencer.followers * (influencer.engagement_rate / 100)), // Estimate
+        past_collaborations: [], // Not available in backend data
+        pricing: influencer.rate_card,
+        preferred_contact: 'Email',
+        image: '/placeholder.svg'
+      }));
+      
+      setFilteredInfluencers(mappedData);
+    } catch (err) {
+      console.error('Error fetching influencers:', err);
+      setError(err.message);
+      // Fall back to mock data if API fails
+      setFilteredInfluencers(mockInfluencers);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Fetch initial data when component mounts
   useEffect(() => {
-    let filtered = mockInfluencers;
-
-    if (searchQuery) {
-      filtered = filtered.filter(influencer =>
-        influencer.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        influencer.category.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(influencer =>
-        influencer.category.toLowerCase().includes(selectedCategory.toLowerCase())
-      );
-    }
-
-    if (selectedPlatform !== 'all') {
-      filtered = filtered.filter(influencer =>
-        influencer.platform.some(p => p.toLowerCase() === selectedPlatform.toLowerCase())
-      );
-    }
-
-    setFilteredInfluencers(filtered);
-  }, [searchQuery, selectedCategory, selectedPlatform]);
+    fetchInfluencers();
+  }, []);
+  
+  // We don't need this useEffect since we'll call fetchInfluencers directly from the button
 
   const handleEmailOutreach = (influencer) => {
     setSelectedInfluencer(influencer);
@@ -255,57 +325,125 @@ const Index = () => {
                   <CardContent className="p-6">
                     {/* Search and Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                      <div className="md:col-span-2 relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          placeholder="Search influencers by name or category..."
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200 transition-all duration-200"
-                        />
+                      <div className="md:col-span-2 flex gap-2">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                          <Input
+                            placeholder="Search influencers by name or category..."
+                            value={searchInputValue}
+                            onChange={(e) => setSearchInputValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                setSearchQuery(searchInputValue);
+                                fetchInfluencers();
+                              }
+                            }}
+                            className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200 transition-all duration-200"
+                          />
+                        </div>
+                        <Button 
+                          onClick={() => {
+                            setSearchQuery(searchInputValue);
+                            fetchInfluencers();
+                          }}
+                          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? 'Searching...' : 'Search'}
+                        </Button>
                       </div>
-                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200">
-                          <SelectValue placeholder="Category" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-sm border-gray-200">
-                          <SelectItem value="all">All Categories</SelectItem>
-                          <SelectItem value="lifestyle">Lifestyle & Fashion</SelectItem>
-                          <SelectItem value="tech">Tech Reviews</SelectItem>
-                          <SelectItem value="fitness">Fitness & Wellness</SelectItem>
-                          <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-                        <SelectTrigger className="border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200">
-                          <SelectValue placeholder="Platform" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-sm border-gray-200">
-                          <SelectItem value="all">All Platforms</SelectItem>
-                          <SelectItem value="instagram">Instagram</SelectItem>
-                          <SelectItem value="youtube">YouTube</SelectItem>
-                          <SelectItem value="tiktok">TikTok</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <div className="md:col-span-2 grid grid-cols-2 gap-4">
+                        <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)}>
+                          <SelectTrigger className="border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200">
+                            <SelectValue placeholder="Category" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white/95 backdrop-blur-sm border-gray-200">
+                            <SelectItem value="all">All Categories</SelectItem>
+                            <SelectItem value="lifestyle">Lifestyle & Fashion</SelectItem>
+                            <SelectItem value="tech">Tech Reviews</SelectItem>
+                            <SelectItem value="fitness">Fitness & Wellness</SelectItem>
+                            <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={selectedPlatform} onValueChange={(value) => setSelectedPlatform(value)}>
+                          <SelectTrigger className="border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200">
+                            <SelectValue placeholder="Platform" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white/95 backdrop-blur-sm border-gray-200">
+                            <SelectItem value="all">All Platforms</SelectItem>
+                            <SelectItem value="instagram">Instagram</SelectItem>
+                            <SelectItem value="youtube">YouTube</SelectItem>
+                            <SelectItem value="tiktok">TikTok</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="md:col-span-4 flex justify-end">
+                        <Button
+                          onClick={() => {
+                            // Apply all filters at once
+                            fetchInfluencers();
+                          }}
+                          variant="outline"
+                          className="border-purple-200 hover:border-purple-300 hover:bg-purple-50"
+                          disabled={isLoading}
+                        >
+                          Apply Filters
+                        </Button>
+                      </div>
                     </div>
 
                     {/* Results Count */}
                     <div className="mb-6">
-                      <p className="text-sm text-gray-600">
-                        Found <span className="font-semibold text-purple-600">{filteredInfluencers.length}</span> influencers matching your criteria
-                      </p>
+                      {isLoading ? (
+                        <p className="text-sm text-gray-600">
+                          Searching for influencers...
+                        </p>
+                      ) : error ? (
+                        <p className="text-sm text-red-600">
+                          Error: {error}. Showing fallback data.
+                        </p>
+                      ) : (
+                        <p className="text-sm text-gray-600">
+                          {searchInputValue ? (
+                            <>Found <span className="font-semibold text-purple-600">{filteredInfluencers.length}</span> influencers matching "{searchInputValue}"</>
+                          ) : (
+                            <>Showing <span className="font-semibold text-purple-600">{filteredInfluencers.length}</span> influencers</>
+                          )}
+                        </p>
+                      )}
                     </div>
 
                     {/* Influencer Grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                      {filteredInfluencers.map((influencer) => (
-                        <InfluencerCard
-                          key={influencer.id}
-                          influencer={influencer}
-                          onEmailOutreach={handleEmailOutreach}
-                          onVoiceNegotiation={startVoiceNegotiation}
-                        />
-                      ))}
+                      {isLoading ? (
+                        // Loading skeleton
+                        Array(6).fill(0).map((_, index) => (
+                          <Card key={`skeleton-${index}`} className="border border-gray-200/60 bg-white/80 backdrop-blur-sm shadow-sm h-[300px] animate-pulse">
+                            <div className="p-4">
+                              <div className="w-3/4 h-6 bg-gray-200 rounded mb-4"></div>
+                              <div className="w-1/2 h-4 bg-gray-200 rounded mb-6"></div>
+                              <div className="w-full h-24 bg-gray-200 rounded mb-4"></div>
+                              <div className="flex justify-between">
+                                <div className="w-1/3 h-8 bg-gray-200 rounded"></div>
+                                <div className="w-1/3 h-8 bg-gray-200 rounded"></div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))
+                      ) : filteredInfluencers.length > 0 ? (
+                        filteredInfluencers.map((influencer) => (
+                          <InfluencerCard
+                            key={influencer.id}
+                            influencer={influencer}
+                            onEmailOutreach={handleEmailOutreach}
+                            onVoiceNegotiation={startVoiceNegotiation}
+                          />
+                        ))
+                      ) : (
+                        <div className="col-span-full text-center py-12">
+                          <p className="text-gray-500">No influencers found matching your criteria. Try adjusting your search.</p>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>

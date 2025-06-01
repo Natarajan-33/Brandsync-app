@@ -4,11 +4,28 @@ from pydantic import BaseModel
 import chromadb
 from sentence_transformers import SentenceTransformer
 import numpy as np
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/influencers", tags=["influencers"])
 
-# Initialize the sentence transformer model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+# Initialize the sentence transformer model with explicit parameters
+try:
+    logger.info("Loading sentence transformer model...")
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    logger.info("Model loaded successfully")
+except Exception as e:
+    logger.error(f"Error loading model: {e}")
+    # Fallback to a simpler model if the first one fails
+    try:
+        model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
+        logger.info("Fallback model loaded successfully")
+    except Exception as e2:
+        logger.error(f"Error loading fallback model: {e2}")
+        raise
 
 # Mock influencer data
 influencers = [
@@ -119,17 +136,56 @@ try:
 except Exception:
     influencer_collection = chroma_client.create_collection(name="influencers")
 
-# Generate descriptions for embedding
+# Generate comprehensive descriptions for embedding
 def generate_influencer_description(influencer: Dict[str, Any]) -> str:
-    return f"{influencer['name']} is a {influencer['category']} influencer from {influencer['region']} \
-            with {influencer['followers']} followers on {', '.join(influencer['platforms'])} \
-            with an engagement rate of {influencer['engagement_rate']}%. {influencer['description']}"
+    """Generate a rich text description of an influencer for embedding"""
+    # Create a detailed description that captures all important aspects
+    desc = f"{influencer['name']} is a {influencer['category']} influencer from {influencer['region']} "
+    desc += f"with {influencer['followers']:,} followers "
+    desc += f"on {', '.join(influencer['platforms'])} "
+    desc += f"with an engagement rate of {influencer['engagement_rate']}%. "
+    
+    # Add specific details that might be searched for
+    if influencer['followers'] >= 1000000:
+        desc += f"They are a mega influencer with over {influencer['followers']/1000000:.1f} million followers. "
+    elif influencer['followers'] >= 100000:
+        desc += f"They are a macro influencer with {influencer['followers']/1000:.0f}K followers. "
+    else:
+        desc += f"They are a micro influencer with {influencer['followers']/1000:.0f}K followers. "
+        
+    # Add rate card information
+    desc += f"Their rate card is {influencer['rate_card']}. "
+    
+    # Add description if available
+    if 'description' in influencer and influencer['description']:
+        desc += influencer['description']
+        
+    return desc
 
 # Initialize the vector database with influencer data
 def initialize_vector_db():
+    try:
+        # First check if collection already has data
+        existing_count = len(influencer_collection.get(include=[])['ids'])
+        if existing_count > 0:
+            logger.info(f"Collection already contains {existing_count} items, skipping initialization")
+            return
+    except Exception as e:
+        logger.warning(f"Error checking collection: {e}, will proceed with initialization")
+    
+    logger.info("Initializing vector database with influencer data...")
+    
+    # Generate IDs and descriptions
     ids = [str(influencer["id"]) for influencer in influencers]
-    descriptions = [generate_influencer_description(influencer) for influencer in influencers]
+    
+    # Create rich descriptions for better semantic search
+    descriptions = [generate_influencer_description(inf) for inf in influencers]
+    logger.info(f"Generated {len(descriptions)} descriptions for embedding")
+    
+    # Generate embeddings
+    logger.info("Encoding descriptions with the model...")
     embeddings = model.encode(descriptions).tolist()
+    logger.info("Encoding complete")
     
     # Convert complex data types to strings for ChromaDB compatibility
     metadatas = []
@@ -144,11 +200,17 @@ def initialize_vector_db():
         metadatas.append(metadata)
     
     # Add documents to the collection
-    influencer_collection.add(
-        ids=ids,
-        embeddings=embeddings,
-        metadatas=metadatas
-    )
+    logger.info("Adding data to ChromaDB collection...")
+    try:
+        influencer_collection.add(
+            ids=ids,
+            embeddings=embeddings,
+            metadatas=metadatas
+        )
+        logger.info(f"Successfully added {len(ids)} influencers to the vector database")
+    except Exception as e:
+        logger.error(f"Error adding data to collection: {e}")
+        raise
 
 # Initialize the vector database on module import
 # Only run this in production, not during testing
@@ -162,25 +224,72 @@ async def get_influencers():
 
 @router.get("/search")
 async def search_influencers(q: str = Query(..., description="Natural language search query")):
-    """Search influencers using natural language"""
+    """Search influencers using natural language and vector embeddings with cosine similarity"""
+    logger.info(f"Received search query: {q}")
+    
     # Encode the query
+    logger.info("Encoding search query...")
     query_embedding = model.encode(q).tolist()
     
-    # Search in the collection
-    results = influencer_collection.query(
-        query_embeddings=[query_embedding],
-        n_results=5
-    )
+    # Search in the collection with cosine similarity
+    try:
+        results = influencer_collection.query(
+            query_embeddings=[query_embedding],
+            n_results=10,  # Get more results initially to calculate similarity scores
+            include=["metadatas", "distances"]  # Include distances for similarity calculation
+        )
+        logger.info(f"Vector search completed with {len(results['ids'][0])} results")
+    except Exception as e:
+        logger.error(f"Error during vector search: {e}")
+        # Return empty list as fallback
+        return []
     
-    # Extract and return the matched influencers
+    if not results['ids'][0]:
+        logger.info("No results found in vector search")
+        return []
+    
+    # Extract results
     matched_ids = results["ids"][0]  # First query results
+    distances = results["distances"][0]  # Distances for first query
+    
+    # Convert distances to cosine similarity scores (ChromaDB uses L2 distance by default)
+    # Cosine similarity = 1 - (distance^2 / 2)
+    # This is an approximation for normalized vectors
+    similarity_scores = [1 - (distance**2 / 2) for distance in distances]
+    
+    # Create a list of (id, similarity_score) tuples
+    id_score_pairs = list(zip(matched_ids, similarity_scores))
+    
+    # Sort by similarity score (highest first)
+    id_score_pairs.sort(key=lambda x: x[1], reverse=True)
+    
+    logger.info(f"Top similarity scores: {[f'{id}:{score:.4f}' for id, score in id_score_pairs[:5]]}")
+    
+    # Get all matching influencers with their scores
     matched_influencers = []
+    for id_str, score in id_score_pairs:
+        try:
+            influencer_id = int(id_str)
+            for influencer in influencers:
+                if influencer["id"] == influencer_id:
+                    # Add a copy of the influencer with the similarity score
+                    influencer_copy = influencer.copy()
+                    influencer_copy["similarity_score"] = score
+                    matched_influencers.append(influencer_copy)
+                    logger.info(f"Vector match: {influencer['name']} with similarity score {score:.4f}")
+                    break
+        except (ValueError, TypeError):
+            # Skip if ID can't be converted to int
+            continue
     
-    for id_str in matched_ids:
-        influencer_id = int(id_str)
-        for influencer in influencers:
-            if influencer["id"] == influencer_id:
-                matched_influencers.append(influencer)
-                break
+    # Return the top 2 results based on similarity score
+    top_results = matched_influencers[:2] if matched_influencers else []
     
-    return matched_influencers
+    if top_results:
+        logger.info(f"Returning top {len(top_results)} results:")
+        for result in top_results:
+            logger.info(f"  {result['name']} (score: {result['similarity_score']:.4f})")
+    else:
+        logger.info("No results found")
+    
+    return top_results
