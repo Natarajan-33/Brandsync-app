@@ -5,14 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
-import { Search, Users, Mail, Phone, BarChart3, Settings, Bell, Crown, Star, MapPin, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Search, Crown, Mail, Phone, DollarSign, TrendingUp, Users, Star, SidebarTrigger } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { AppSidebar } from '@/components/AppSidebar';
+import { InfluencerCard } from '@/components/InfluencerCard';
+import { StatsCard } from '@/components/StatsCard';
 
 // Mock data for influencers
 const mockInfluencers = [
@@ -27,7 +29,7 @@ const mockInfluencers = [
     location: "Los Angeles, CA",
     avg_views: 15000,
     past_collaborations: ["Nike", "Sephora", "H&M"],
-    pricing: "$2,500 per post",
+    pricing: "$2,500",
     preferred_contact: "Email",
     image: "/placeholder.svg"
   },
@@ -42,7 +44,7 @@ const mockInfluencers = [
     location: "San Francisco, CA",
     avg_views: 45000,
     past_collaborations: ["Apple", "Samsung", "Tesla"],
-    pricing: "$5,000 per video",
+    pricing: "$5,000",
     preferred_contact: "Email",
     image: "/placeholder.svg"
   },
@@ -57,7 +59,7 @@ const mockInfluencers = [
     location: "Miami, FL",
     avg_views: 12000,
     past_collaborations: ["Lululemon", "Protein World", "Nike"],
-    pricing: "$1,800 per post",
+    pricing: "$1,800",
     preferred_contact: "Phone",
     image: "/placeholder.svg"
   },
@@ -72,7 +74,7 @@ const mockInfluencers = [
     location: "New York, NY",
     avg_views: 75000,
     past_collaborations: ["Netflix", "Spotify", "Pepsi"],
-    pricing: "$4,200 per video",
+    pricing: "$4,200",
     preferred_contact: "Email",
     image: "/placeholder.svg"
   }
@@ -185,20 +187,26 @@ const Index = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full flex items-center justify-center mb-4">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(147,51,234,0.1),transparent_70%)]" />
+        <Card className="w-full max-w-md relative border-0 shadow-2xl shadow-purple-500/10 bg-white/80 backdrop-blur-xl">
+          <CardHeader className="text-center pb-8 pt-8">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-purple-500/25">
               <Crown className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-2xl font-bold">InfluencerFlow</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              InfluencerFlow
+            </CardTitle>
+            <CardDescription className="text-gray-600 mt-2 text-lg">
               AI-Powered Influencer Marketing & Negotiation Platform
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Button onClick={handleGoogleLogin} className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-              <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+          <CardContent className="pb-8">
+            <Button 
+              onClick={handleGoogleLogin} 
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-200 h-12 text-base font-medium"
+            >
+              <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -213,248 +221,183 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Navigation Header */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg flex items-center justify-center mr-3">
-                <Crown className="w-5 h-5 text-white" />
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-gray-50 via-white to-purple-50">
+        <AppSidebar />
+        <SidebarInset className="flex-1">
+          {/* Header */}
+          <header className="border-b border-gray-200/60 bg-white/80 backdrop-blur-xl sticky top-0 z-10">
+            <div className="flex h-16 items-center gap-4 px-6">
+              <SidebarTrigger className="w-8 h-8" />
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-gray-900">Influencer Discovery</h2>
+                <p className="text-sm text-gray-500">Find and connect with creators for your campaigns</p>
               </div>
-              <h1 className="text-xl font-bold text-gray-900">InfluencerFlow</h1>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="outline" size="sm">
-                <Bell className="w-4 h-4 mr-2" />
-                Notifications
-              </Button>
-              <Avatar>
-                <AvatarFallback>BU</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs defaultValue="discovery" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-[400px]">
-            <TabsTrigger value="discovery" className="flex items-center gap-2">
-              <Search className="w-4 h-4" />
-              Discovery
-            </TabsTrigger>
-            <TabsTrigger value="outreach" className="flex items-center gap-2">
-              <Mail className="w-4 h-4" />
-              Outreach
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="flex items-center gap-2">
-              <Phone className="w-4 h-4" />
-              Voice Agent
-            </TabsTrigger>
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="w-4 h-4" />
-              Dashboard
-            </TabsTrigger>
-          </TabsList>
+          <main className="flex-1 p-6">
+            <Tabs defaultValue="discovery" className="space-y-6">
+              <TabsList className="bg-white/80 backdrop-blur-sm border border-gray-200/60 p-1 rounded-xl shadow-sm">
+                <TabsTrigger value="discovery" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white transition-all duration-200">
+                  <Search className="w-4 h-4 mr-2" />
+                  Discovery
+                </TabsTrigger>
+                <TabsTrigger value="dashboard" className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white transition-all duration-200">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Analytics
+                </TabsTrigger>
+              </TabsList>
 
-          {/* Discovery Tab */}
-          <TabsContent value="discovery" className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Influencer Discovery</h2>
-              
-              {/* Search and Filters */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                <div className="md:col-span-2">
-                  <Input
-                    placeholder="Search influencers by name or category..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full"
+              {/* Discovery Tab */}
+              <TabsContent value="discovery" className="space-y-6">
+                <Card className="border border-gray-200/60 bg-white/80 backdrop-blur-sm shadow-sm">
+                  <CardContent className="p-6">
+                    {/* Search and Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div className="md:col-span-2 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Input
+                          placeholder="Search influencers by name or category..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10 border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200 transition-all duration-200"
+                        />
+                      </div>
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200">
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white/95 backdrop-blur-sm border-gray-200">
+                          <SelectItem value="all">All Categories</SelectItem>
+                          <SelectItem value="lifestyle">Lifestyle & Fashion</SelectItem>
+                          <SelectItem value="tech">Tech Reviews</SelectItem>
+                          <SelectItem value="fitness">Fitness & Wellness</SelectItem>
+                          <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
+                        <SelectTrigger className="border-gray-200 bg-white/80 backdrop-blur-sm focus:border-purple-300 focus:ring-purple-200">
+                          <SelectValue placeholder="Platform" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white/95 backdrop-blur-sm border-gray-200">
+                          <SelectItem value="all">All Platforms</SelectItem>
+                          <SelectItem value="instagram">Instagram</SelectItem>
+                          <SelectItem value="youtube">YouTube</SelectItem>
+                          <SelectItem value="tiktok">TikTok</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Results Count */}
+                    <div className="mb-6">
+                      <p className="text-sm text-gray-600">
+                        Found <span className="font-semibold text-purple-600">{filteredInfluencers.length}</span> influencers matching your criteria
+                      </p>
+                    </div>
+
+                    {/* Influencer Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {filteredInfluencers.map((influencer) => (
+                        <InfluencerCard
+                          key={influencer.id}
+                          influencer={influencer}
+                          onEmailOutreach={handleEmailOutreach}
+                          onVoiceNegotiation={startVoiceNegotiation}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Dashboard Tab */}
+              <TabsContent value="dashboard" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <StatsCard
+                    title="Total Outreach"
+                    value={outreachStats.totalOutreach}
+                    change="+12% from last month"
+                    icon={Mail}
+                    trend="up"
+                  />
+                  <StatsCard
+                    title="Response Rate"
+                    value={`${Math.round((outreachStats.responses / outreachStats.totalOutreach) * 100)}%`}
+                    change="+8% from last month"
+                    icon={TrendingUp}
+                    trend="up"
+                  />
+                  <StatsCard
+                    title="Deals Closed"
+                    value={outreachStats.deals}
+                    change="+25% from last month"
+                    icon={Star}
+                    trend="up"
+                  />
+                  <StatsCard
+                    title="Revenue Generated"
+                    value={`$${outreachStats.revenue.toLocaleString()}`}
+                    change="+30% from last month"
+                    icon={DollarSign}
+                    trend="up"
                   />
                 </div>
-                <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    <SelectItem value="lifestyle">Lifestyle & Fashion</SelectItem>
-                    <SelectItem value="tech">Tech Reviews</SelectItem>
-                    <SelectItem value="fitness">Fitness & Wellness</SelectItem>
-                    <SelectItem value="comedy">Comedy & Entertainment</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Platform" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Platforms</SelectItem>
-                    <SelectItem value="instagram">Instagram</SelectItem>
-                    <SelectItem value="youtube">YouTube</SelectItem>
-                    <SelectItem value="tiktok">TikTok</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
-              {/* Influencer Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredInfluencers.map((influencer) => (
-                  <Card key={influencer.id} className="hover:shadow-lg transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarImage src={influencer.image} alt={influencer.name} />
-                          <AvatarFallback>{influencer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <CardTitle className="text-lg">{influencer.name}</CardTitle>
-                          <div className="flex gap-1 mt-1">
-                            {influencer.platform.map((platform) => (
-                              <Badge key={platform} variant="secondary" className="text-xs">
-                                {platform}
-                              </Badge>
-                            ))}
+                {/* Recent Activity */}
+                <Card className="border border-gray-200/60 bg-white/80 backdrop-blur-sm shadow-sm">
+                  <CardHeader>
+                    <CardTitle className="text-xl">Recent Negotiations</CardTitle>
+                    <CardDescription>Track your latest influencer outreach and negotiation results</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {mockInfluencers.slice(0, 3).map((influencer, index) => (
+                        <div key={influencer.id} className="flex items-center justify-between p-4 border border-gray-200/60 rounded-xl bg-white/50 hover:bg-white/80 transition-all duration-200">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center text-white font-medium">
+                              {influencer.name.split(' ').map(n => n[0]).join('')}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-900">{influencer.name}</p>
+                              <p className="text-sm text-gray-500">{influencer.category}</p>
+                            </div>
+                          </div>
+                          <div className="text-right flex items-center gap-3">
+                            <Badge className={
+                              index === 0 
+                                ? "bg-green-100 text-green-800 border-green-200" 
+                                : index === 1 
+                                ? "bg-yellow-100 text-yellow-800 border-yellow-200" 
+                                : "bg-blue-100 text-blue-800 border-blue-200"
+                            }>
+                              {index === 0 ? "Deal Closed" : index === 1 ? "Negotiating" : "Pending Response"}
+                            </Badge>
+                            <p className="text-sm font-medium text-gray-900">{influencer.pricing}</p>
                           </div>
                         </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Followers:</span>
-                        <span className="font-medium">{influencer.followers.toLocaleString()}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Engagement:</span>
-                        <span className="font-medium text-green-600">{influencer.engagement_rate}%</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Category:</span>
-                        <span className="font-medium">{influencer.category}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Pricing:</span>
-                        <span className="font-medium text-blue-600">{influencer.pricing}</span>
-                      </div>
-                      <div className="flex items-center text-sm text-gray-600">
-                        <MapPin className="w-3 h-3 mr-1" />
-                        {influencer.location}
-                      </div>
-                      <div className="pt-3 space-y-2">
-                        <Button 
-                          onClick={() => handleEmailOutreach(influencer)} 
-                          className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                        >
-                          <Mail className="w-4 h-4 mr-2" />
-                          Send AI Outreach
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          onClick={() => startVoiceNegotiation(influencer)} 
-                          className="w-full"
-                        >
-                          <Phone className="w-4 h-4 mr-2" />
-                          Voice Negotiation
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Total Outreach</CardTitle>
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{outreachStats.totalOutreach}</div>
-                  <p className="text-xs text-muted-foreground">+12% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Response Rate</CardTitle>
-                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{Math.round((outreachStats.responses / outreachStats.totalOutreach) * 100)}%</div>
-                  <p className="text-xs text-muted-foreground">+8% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Deals Closed</CardTitle>
-                  <Star className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{outreachStats.deals}</div>
-                  <p className="text-xs text-muted-foreground">+25% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Revenue Generated</CardTitle>
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">${outreachStats.revenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">+30% from last month</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Negotiations</CardTitle>
-                <CardDescription>Track your latest influencer outreach and negotiation results</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {mockInfluencers.slice(0, 3).map((influencer, index) => (
-                    <div key={influencer.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <Avatar>
-                          <AvatarFallback>{influencer.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium">{influencer.name}</p>
-                          <p className="text-sm text-gray-600">{influencer.category}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <Badge className={index === 0 ? "bg-green-100 text-green-800" : index === 1 ? "bg-yellow-100 text-yellow-800" : "bg-blue-100 text-blue-800"}>
-                          {index === 0 ? "Deal Closed" : index === 1 ? "Negotiating" : "Pending Response"}
-                        </Badge>
-                        <p className="text-sm text-gray-600 mt-1">{influencer.pricing}</p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </main>
+        </SidebarInset>
 
         {/* Email Outreach Dialog */}
         <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-          <DialogContent className="sm:max-w-[525px]">
+          <DialogContent className="sm:max-w-[525px] bg-white/95 backdrop-blur-xl border-gray-200/60">
             <DialogHeader>
-              <DialogTitle>AI Email Outreach</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl">AI Email Outreach</DialogTitle>
+              <DialogDescription className="text-gray-600">
                 Our AI agent will craft and send a personalized outreach email to {selectedInfluencer?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium mb-2">Generated Email Preview:</h4>
-                <p className="text-sm text-gray-700">
+              <div className="p-4 bg-gradient-to-br from-purple-50 to-blue-50 rounded-xl border border-purple-200/60">
+                <h4 className="font-medium mb-2 text-gray-900">Generated Email Preview:</h4>
+                <p className="text-sm text-gray-700 leading-relaxed">
                   Hi {selectedInfluencer?.name},<br/><br/>
                   I hope this message finds you well! I'm reaching out from [Brand Name] because we absolutely love your content in the {selectedInfluencer?.category} space. Your engagement rates and authentic connection with your audience align perfectly with our upcoming campaign.<br/><br/>
                   We'd love to discuss a potential collaboration opportunity. Would you be available for a brief call to explore this further? Please share your preferred contact number, and we can schedule something at your convenience.<br/><br/>
@@ -464,10 +407,10 @@ const Index = () => {
                 </p>
               </div>
               <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setEmailDialogOpen(false)}>
+                <Button variant="outline" onClick={() => setEmailDialogOpen(false)} className="border-gray-200">
                   Cancel
                 </Button>
-                <Button onClick={sendEmail} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                <Button onClick={sendEmail} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
                   Send Email
                 </Button>
               </div>
@@ -477,68 +420,74 @@ const Index = () => {
 
         {/* Voice Negotiation Dialog */}
         <Dialog open={voiceDialogOpen} onOpenChange={setVoiceDialogOpen}>
-          <DialogContent className="sm:max-w-[525px]">
+          <DialogContent className="sm:max-w-[525px] bg-white/95 backdrop-blur-xl border-gray-200/60">
             <DialogHeader>
-              <DialogTitle>AI Voice Negotiation Setup</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-xl">AI Voice Negotiation Setup</DialogTitle>
+              <DialogDescription className="text-gray-600">
                 Configure your campaign details for the AI voice agent to conduct negotiations with {selectedInfluencer?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="brandName">Brand Name</Label>
+                  <Label htmlFor="brandName" className="text-sm font-medium text-gray-700">Brand Name</Label>
                   <Input
                     id="brandName"
                     placeholder="Your brand name"
                     value={campaignDetails.brandName}
                     onChange={(e) => setCampaignDetails({...campaignDetails, brandName: e.target.value})}
+                    className="mt-1 border-gray-200 focus:border-purple-300 focus:ring-purple-200"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="campaignName">Campaign Name</Label>
+                  <Label htmlFor="campaignName" className="text-sm font-medium text-gray-700">Campaign Name</Label>
                   <Input
                     id="campaignName"
                     placeholder="Campaign title"
                     value={campaignDetails.campaignName}
                     onChange={(e) => setCampaignDetails({...campaignDetails, campaignName: e.target.value})}
+                    className="mt-1 border-gray-200 focus:border-purple-300 focus:ring-purple-200"
                   />
                 </div>
               </div>
               <div>
-                <Label htmlFor="deliverables">Deliverables</Label>
+                <Label htmlFor="deliverables" className="text-sm font-medium text-gray-700">Deliverables</Label>
                 <Textarea
                   id="deliverables"
                   placeholder="1 Instagram post, 3 stories, 1 reel..."
                   value={campaignDetails.deliverables}
                   onChange={(e) => setCampaignDetails({...campaignDetails, deliverables: e.target.value})}
+                  className="mt-1 border-gray-200 focus:border-purple-300 focus:ring-purple-200 resize-none"
+                  rows={3}
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="timeline">Timeline</Label>
+                  <Label htmlFor="timeline" className="text-sm font-medium text-gray-700">Timeline</Label>
                   <Input
                     id="timeline"
                     placeholder="2 weeks"
                     value={campaignDetails.timeline}
                     onChange={(e) => setCampaignDetails({...campaignDetails, timeline: e.target.value})}
+                    className="mt-1 border-gray-200 focus:border-purple-300 focus:ring-purple-200"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="budget">Budget Range</Label>
+                  <Label htmlFor="budget" className="text-sm font-medium text-gray-700">Budget Range</Label>
                   <Input
                     id="budget"
                     placeholder="$2,000 - $4,000"
                     value={campaignDetails.budget}
                     onChange={(e) => setCampaignDetails({...campaignDetails, budget: e.target.value})}
+                    className="mt-1 border-gray-200 focus:border-purple-300 focus:ring-purple-200"
                   />
                 </div>
               </div>
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setVoiceDialogOpen(false)}>
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button variant="outline" onClick={() => setVoiceDialogOpen(false)} className="border-gray-200">
                   Cancel
                 </Button>
-                <Button onClick={simulateVoiceCall} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
+                <Button onClick={simulateVoiceCall} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white">
                   <Phone className="w-4 h-4 mr-2" />
                   Start Voice Negotiation
                 </Button>
@@ -547,7 +496,7 @@ const Index = () => {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+    </SidebarProvider>
   );
 };
 
