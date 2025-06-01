@@ -9,9 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Search, Crown, Mail, Phone, DollarSign, TrendingUp, Users, Star, SidebarTrigger } from 'lucide-react';
+import { Search, Crown, Mail, Phone, DollarSign, TrendingUp, Users, Star } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
+import { SidebarProvider, SidebarInset, SidebarTrigger } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/AppSidebar';
 import { InfluencerCard } from '@/components/InfluencerCard';
 import { StatsCard } from '@/components/StatsCard';
