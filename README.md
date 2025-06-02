@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: [https://lovable.dev/projects/8e971aac-348f-4534-8518-ae2772defbe7](https://influencerflow-ai-agent.lovable.app/)
+**URL**: [https://influencerflow-ai-agent.lovable.app](https://influencerflow-ai-agent.lovable.app/)
 
 ## How can I edit this code?
 
