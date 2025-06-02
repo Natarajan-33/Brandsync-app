@@ -2,8 +2,6 @@
 
 ## Project info
 
-**URL**: [https://influencerflow-ai-agent.lovable.app](https://influencerflow-ai-agent.lovable.app/)
-
 ## How can I edit this code?
 
 There are several ways of editing your application.
