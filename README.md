@@ -416,10 +416,3 @@ For issues, questions, or contributions, please open an issue in the repository.
 - [ChromaDB](https://www.trychroma.com/) - Vector database
 - [Sentence Transformers](https://www.sbert.net/) - Semantic embeddings
 
----
-
-<div align="center">
-
-**Built with ❤️ using AI-powered technologies**
-
-</div>
