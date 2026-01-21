@@ -1,4 +1,5 @@
 # BrandSync - AI-Powered Influencer Marketing Platform
+<img width="1911" height="926" alt="image" src="https://github.com/user-attachments/assets/cbd69a9b-654d-45c7-aa8e-2d70e83554d7" />
 
 <div align="center">
 
